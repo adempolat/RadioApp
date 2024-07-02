@@ -1,4 +1,4 @@
-package com.adempolat.radioapp
+package com.adempolat.radioapp.service
 
 import android.Manifest
 import android.app.NotificationChannel
@@ -14,6 +14,8 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.adempolat.radioapp.R
+import com.adempolat.radioapp.data.RadioList
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.PlaybackException
@@ -25,32 +27,6 @@ private const val NOTIFICATION_ID = 1
 class RadioService : Service() {
 
     private var exoPlayer: ExoPlayer? = null
-    private val radioUrls = listOf(
-        "https://listen.powerapp.com.tr/powerpop/abr/playlist.m3u8",
-        "https://trkvz-radyolar.ercdn.net/asporradyo/playlist.m3u8",
-        "https://turkmedya.radyotvonline.com/turkmedya/alemfm.stream/playlist.m3u8",
-        "https://moondigitalmaster.radyotvonline.net/altinsarkilar/playlist.m3u8",
-        "https://yayin.slowkaradeniztv.com:3390/multi_web/play.m3u8",
-        "https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8",
-        "https://moondigitaledge.radyotvonline.net/radyolanddoksanlar/playlist.m3u8",
-        "https://moondigitaledge.radyotvonline.net/classicland/playlist.m3u8",
-        "https://babaradyo.turkhosted.com/best/babaradyo.stream/playlist.m3u8",
-        "https://moondigitalmaster.radyotvonline.net/arabeskland/playlist.m3u8",
-        "https://moondigitalmaster.radyotvonline.net/90lar/playlist.m3u8"
-    )
-    private val radioNames = listOf(
-        "Power Pop",
-        "A Spor Radyo",
-        "Alem FM",
-        "Altın Şarkılar",
-        "Slow Karadeniz",
-        "Kafa Radyo",
-        "Doksanlar",
-        "ClassicLand",
-        "Baba Radyo",
-        "Arabeskland",
-        "90'lar"
-    )
     private var currentRadioIndex = 0
 
     override fun onCreate() {
@@ -74,7 +50,7 @@ class RadioService : Service() {
 
     private fun playRadio(index: Int) {
         currentRadioIndex = index
-        val radioUrl = radioUrls[currentRadioIndex]
+        val radioUrl = RadioList.radioUrls[currentRadioIndex]
         if (exoPlayer == null) {
             exoPlayer = ExoPlayer.Builder(this).build().apply {
                 val mediaItem = MediaItem.fromUri(radioUrl)
@@ -112,7 +88,7 @@ class RadioService : Service() {
     }
 
     private fun nextRadio() {
-        if (currentRadioIndex < radioUrls.size - 1) {
+        if (currentRadioIndex < RadioList.radioUrls.size - 1) {
             currentRadioIndex++
             playRadio(currentRadioIndex)
         }
@@ -127,7 +103,7 @@ class RadioService : Service() {
 
     private fun sendRadioNameBroadcast() {
         val intent = Intent("RADIO_UPDATE")
-        intent.putExtra("RADIO_NAME", radioNames[currentRadioIndex])
+        intent.putExtra("RADIO_NAME", RadioList.radioNames[currentRadioIndex])
         sendBroadcast(intent)
     }
 
@@ -143,37 +119,58 @@ class RadioService : Service() {
         val playIntent = Intent(this, RadioService::class.java).apply {
             action = if (isPlaying) "STOP_RADIO" else "PLAY_RADIO"
         }
-        val playPendingIntent = PendingIntent.getService(this, 0, playIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val playPendingIntent = PendingIntent.getService(
+            this,
+            0,
+            playIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         val nextIntent = Intent(this, RadioService::class.java).apply {
             action = "NEXT_RADIO"
         }
-        val nextPendingIntent = PendingIntent.getService(this, 0, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val nextPendingIntent = PendingIntent.getService(
+            this,
+            0,
+            nextIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         val prevIntent = Intent(this, RadioService::class.java).apply {
             action = "PREV_RADIO"
         }
-        val prevPendingIntent = PendingIntent.getService(this, 0, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val prevPendingIntent = PendingIntent.getService(
+            this,
+            0,
+            prevIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Playing: ${radioNames[currentRadioIndex]}")
-            .setContentText(if (isPlaying) "Playing" else "Paused")
+            .setContentTitle(RadioList.radioNames[currentRadioIndex])
+            .setContentText(if (isPlaying) "Oynatılıyor" else "Durduruldu")
             .setSmallIcon(R.drawable.radio)
-            .addAction(NotificationCompat.Action(
-                R.drawable.skip_previous_24px,
-                "Previous",
-                prevPendingIntent
-            ))
-            .addAction(NotificationCompat.Action(
-                R.drawable.pause,
-                if (isPlaying) "Pause" else "Play",
-                playPendingIntent
-            ))
-            .addAction(NotificationCompat.Action(
-                R.drawable.skip_next_24px,
-                "Next",
-                nextPendingIntent
-            ))
+            .addAction(
+                NotificationCompat.Action(
+                    R.drawable.skip_previous_24px,
+                    "Önceki",
+                    prevPendingIntent
+                )
+            )
+            .addAction(
+                NotificationCompat.Action(
+                    R.drawable.pause,
+                    if (isPlaying) "Durdur" else "Oynat",
+                    playPendingIntent
+                )
+            )
+            .addAction(
+                NotificationCompat.Action(
+                    R.drawable.skip_next_24px,
+                    "Sonraki",
+                    nextPendingIntent
+                )
+            )
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(isPlaying)
             .build()
