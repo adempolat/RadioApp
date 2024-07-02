@@ -26,13 +26,31 @@ class RadioService : Service() {
 
     private var exoPlayer: ExoPlayer? = null
     private val radioUrls = listOf(
-        "https://moondigitalmaster.radyotvonline.net/90lar/playlist.m3u8",
         "https://listen.powerapp.com.tr/powerpop/abr/playlist.m3u8",
         "https://trkvz-radyolar.ercdn.net/asporradyo/playlist.m3u8",
         "https://turkmedya.radyotvonline.com/turkmedya/alemfm.stream/playlist.m3u8",
-        "https://moondigitalmaster.radyotvonline.net/altinsarkilar/playlist.m3u8"
+        "https://moondigitalmaster.radyotvonline.net/altinsarkilar/playlist.m3u8",
+        "https://yayin.slowkaradeniztv.com:3390/multi_web/play.m3u8",
+        "https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8",
+        "https://moondigitaledge.radyotvonline.net/radyolanddoksanlar/playlist.m3u8",
+        "https://moondigitaledge.radyotvonline.net/classicland/playlist.m3u8",
+        "https://babaradyo.turkhosted.com/best/babaradyo.stream/playlist.m3u8",
+        "https://moondigitalmaster.radyotvonline.net/arabeskland/playlist.m3u8",
+        "https://moondigitalmaster.radyotvonline.net/90lar/playlist.m3u8"
     )
-
+    private val radioNames = listOf(
+        "Power Pop",
+        "A Spor Radyo",
+        "Alem FM",
+        "Altın Şarkılar",
+        "Slow Karadeniz",
+        "Kafa Radyo",
+        "Doksanlar",
+        "ClassicLand",
+        "Baba Radyo",
+        "Arabeskland",
+        "90'lar"
+    )
     private var currentRadioIndex = 0
 
     override fun onCreate() {
@@ -43,15 +61,19 @@ class RadioService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             "STOP_RADIO" -> stopRadio()
-            "PLAY_RADIO" -> playRadio()
+            "PLAY_RADIO" -> {
+                val radioIndex = intent.getIntExtra("RADIO_INDEX", currentRadioIndex)
+                playRadio(radioIndex)
+            }
             "NEXT_RADIO" -> nextRadio()
             "PREV_RADIO" -> prevRadio()
-            else -> playRadio()
+            else -> playRadio(currentRadioIndex)
         }
         return START_STICKY
     }
 
-    private fun playRadio() {
+    private fun playRadio(index: Int) {
+        currentRadioIndex = index
         val radioUrl = radioUrls[currentRadioIndex]
         if (exoPlayer == null) {
             exoPlayer = ExoPlayer.Builder(this).build().apply {
@@ -80,6 +102,7 @@ class RadioService : Service() {
                 play()
             }
         }
+        sendRadioNameBroadcast()
     }
 
     private fun stopRadio() {
@@ -91,15 +114,21 @@ class RadioService : Service() {
     private fun nextRadio() {
         if (currentRadioIndex < radioUrls.size - 1) {
             currentRadioIndex++
-            playRadio()
+            playRadio(currentRadioIndex)
         }
     }
 
     private fun prevRadio() {
         if (currentRadioIndex > 0) {
             currentRadioIndex--
-            playRadio()
+            playRadio(currentRadioIndex)
         }
+    }
+
+    private fun sendRadioNameBroadcast() {
+        val intent = Intent("RADIO_UPDATE")
+        intent.putExtra("RADIO_NAME", radioNames[currentRadioIndex])
+        sendBroadcast(intent)
     }
 
     private fun showNotification(isPlaying: Boolean) {
@@ -127,7 +156,7 @@ class RadioService : Service() {
         val prevPendingIntent = PendingIntent.getService(this, 0, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Radio Service")
+            .setContentTitle("Playing: ${radioNames[currentRadioIndex]}")
             .setContentText(if (isPlaying) "Playing" else "Paused")
             .setSmallIcon(R.drawable.radio)
             .addAction(NotificationCompat.Action(

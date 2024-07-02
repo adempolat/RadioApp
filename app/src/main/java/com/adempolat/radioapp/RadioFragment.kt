@@ -1,15 +1,20 @@
 package com.adempolat.radioapp
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 
 class RadioFragment : Fragment() {
 
@@ -19,8 +24,30 @@ class RadioFragment : Fragment() {
     private lateinit var prevButton: Button
     private lateinit var statusTextView: TextView
     private lateinit var radioNameTextView: TextView
+    private lateinit var recyclerView: RecyclerView
 
+    private val radioList = listOf(
+        "Power Pop",
+        "A Spor Radyo",
+        "Alem FM",
+        "Altın Şarkılar",
+        "Slow Karadeniz",
+        "Kafa Radyo",
+        "Doksanlar",
+        "ClassicLand",
+        "Baba Radyo",
+        "Arabeskland",
+        "90'lar"
+    )
 
+    private val radioReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val radioName = intent?.getStringExtra("RADIO_NAME")
+            radioNameTextView.text = "Current Radio: $radioName"
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -33,6 +60,7 @@ class RadioFragment : Fragment() {
         prevButton = view.findViewById(R.id.prevButton)
         statusTextView = view.findViewById(R.id.statusTextView)
         radioNameTextView = view.findViewById(R.id.radioNameTextView)
+        recyclerView = view.findViewById(R.id.recyclerView)
 
         playButton.setOnClickListener {
             playRadio()
@@ -49,6 +77,13 @@ class RadioFragment : Fragment() {
         prevButton.setOnClickListener {
             prevRadio()
         }
+
+        recyclerView.layoutManager = LinearLayoutManager(context)
+        recyclerView.adapter = RadioAdapter(requireContext(), radioList)
+
+        // BroadcastReceiver'ı kaydet
+        val intentFilter = IntentFilter("RADIO_UPDATE")
+        context?.registerReceiver(radioReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
 
         return view
     }
@@ -88,5 +123,7 @@ class RadioFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // BroadcastReceiver'ı kaldır
+        context?.unregisterReceiver(radioReceiver)
     }
 }
