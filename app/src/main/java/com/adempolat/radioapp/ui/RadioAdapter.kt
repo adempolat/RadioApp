@@ -10,9 +10,14 @@ import com.adempolat.radioapp.R
 import com.adempolat.radioapp.databinding.RadioItemBinding
 import com.adempolat.radioapp.service.RadioService
 
+interface OnRadioPlayListener {
+    fun onRadioPlay(radioName: String)
+}
+
 class RadioAdapter(
     private val context: Context,
-    private val radioList: MutableList<String>
+    private val radioList: MutableList<String>,
+    private val listener: OnRadioPlayListener // Listener eklendi
 ) : RecyclerView.Adapter<RadioAdapter.RadioViewHolder>() {
 
     var currentPlayingIndex: Int = -1
@@ -35,6 +40,9 @@ class RadioAdapter(
             context.startService(intent)
             currentPlayingIndex = position
             notifyDataSetChanged()
+
+            // Listener çağır
+            listener.onRadioPlay(radioName)
         }
 
         holder.binding.stopButton.setOnClickListener {
@@ -81,6 +89,11 @@ class RadioAdapter(
         radioList.clear()
         radioList.addAll(favoriteList)
         radioList.addAll(nonFavoriteList)
+        notifyDataSetChanged()
+    }
+
+    fun updateCurrentPlayingIndex(index: Int) {
+        currentPlayingIndex = index
         notifyDataSetChanged()
     }
 
