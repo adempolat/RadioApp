@@ -9,23 +9,21 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.adempolat.radioapp.R
 import com.adempolat.radioapp.data.RadioList
+import com.adempolat.radioapp.databinding.FragmentRadioBinding
 
 class RadioFragment : Fragment() {
 
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var radioNameTextView: TextView
+    private var _binding: FragmentRadioBinding? = null
+    private val binding get() = _binding!!
 
     private val radioReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val radioName = intent?.getStringExtra("RADIO_NAME")
-            radioNameTextView.text = "Current Radio: $radioName"
+            binding.radioNameTextView.text = "Current Radio: $radioName"
         }
     }
 
@@ -34,13 +32,11 @@ class RadioFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fragment_radio, container, false)
+        _binding = FragmentRadioBinding.inflate(inflater, container, false)
+        val view = binding.root
 
-        radioNameTextView = view.findViewById(R.id.radioNameTextView)
-        recyclerView = view.findViewById(R.id.recyclerView)
-
-        recyclerView.layoutManager = LinearLayoutManager(context)
-        recyclerView.adapter = RadioAdapter(requireContext(), RadioList.radioNames.toMutableList())
+        binding.recyclerView.layoutManager = LinearLayoutManager(context)
+        binding.recyclerView.adapter = RadioAdapter(requireContext(), RadioList.radioNames.toMutableList())
 
         // BroadcastReceiver'ı kaydet
         val intentFilter = IntentFilter("RADIO_UPDATE")
@@ -53,5 +49,6 @@ class RadioFragment : Fragment() {
         super.onDestroyView()
         // BroadcastReceiver'ı kaldır
         context?.unregisterReceiver(radioReceiver)
+        _binding = null
     }
 }
